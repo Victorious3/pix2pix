@@ -1,7 +1,7 @@
 # pix2pix
 Teamproject pix2pix Group 2.<br />
-Team members: Daniel, Jialu, Lasse
-Project duration: 26.Juni.2020 - 26.Juli.2020
+Team members: Daniel, Jialu, Lasse<br />
+Project duration: 26.Juni.2020 - 26.Juli.2020<br />
 
 # Documentation<br />
 #### 02.07.2020<br />
