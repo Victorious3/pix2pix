@@ -3,7 +3,7 @@ Teamproject pix2pix Group 2.<br />
 Team members: Daniel, Jialu, Lasse<br />
 Project duration: 26.Juni.2020 - 26.Juli.2020<br />
 
-<img src="pix2pix_introduction_image.jpg">
+<img src="image/pix2pix_introduction_image.jpg">
 
 # Documentation<br />
 #### 02.07.2020<br />
@@ -32,7 +32,7 @@ The structure of our code will be like :<br />
 
 ## Overview<br />
 The Pix2Pix Generative Adversarial Network(GAN) is a framework based on adversarial neural network, which can realize image-to-image translation.The goal of image-to-image translation tasks is to output images that based on the input images(soruce images),such as converting maps to satellite photographs, black and white photographs to color, and sketches of products to product photographs.<br />
-<img src="overview_image.png">
+<img src="image/overview_image.png">
 
 ### Specific process <br />
 Since it's based on the GAN framework,we need to frist define the input and output. The input of Generator(G) received by ordinary GAN is a random vector, and the output is an image; the input received by Discriminator(D) is an image (generated or real), and the output is real or fake. This way G and D can work together to output real images.<br />
