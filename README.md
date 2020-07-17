@@ -36,7 +36,7 @@ The Pix2Pix Generative Adversarial Network(GAN) is a framework based on adversar
 
 ### Specific process <br />
 Since it's based on the GAN framework,we need to frist define the input and output. The input of Generator(G) received by ordinary GAN is a random vector, and the output is an image; the input received by Discriminator(D) is an image (generated or real), and the output is real or fake. This way G and D can work together to output real images.<br />
-But for the image-to-image translation tasks, its G input should obviously be a picture x, and the output is of course a picture y. However, some changes should be made to the input of D, because in addition to generating a real image, it is also necessary to ensure that the generated image and the input image match.In this case,the input of D has beed changed to a loss function.<br />
+But for the image-to-image translation tasks, the input of G should obviously be a picture x, and the output is a picture y. However, some changes should be made to the input of D, because in addition to generating a real image, it is also necessary to ensure that the generated image and the input image match.In this case,the input of D has beed changed to a loss function.<br />
 
 
 ## Explanation of code<br />
