@@ -128,3 +128,30 @@ class GeneratorUNet(nn.Module):
         u7 = self.up7(u6, d1)
 
         return self.up8(u7)
+
+
+def weights_init_normal(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        torch.nn.init.normal(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm2d') != -1:
+        torch.nn.init.normal(m.weight.data, 1.0, 0.02)
+        torch.nn.init.constant(m.bias.data, 0.0)
+
+####################################################
+# Initialize generator and discriminator
+####################################################
+
+def Create_nets(args):
+    generator = GeneratorUNet()
+    discriminator = Discriminator(args.n_D_layers)
+
+    if torch.cuda.is_available():
+        generator = generator.cuda()
+        discriminator = discriminator.cuda()
+
+    # Initialize weights
+    generator.apply(weights_init_normal)
+    discriminator.apply(weights_init_normal)
+
+    return generator, discriminator
