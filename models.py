@@ -144,7 +144,7 @@ def weights_init_normal(m):
 
 def Create_nets(args):
     generator = GeneratorUNet()
-    discriminator = Discriminator(args.n_D_layers)
+    discriminator = Discriminator(args.out_channels)
 
     if torch.cuda.is_available():
         generator = generator.cuda()
