@@ -24,7 +24,8 @@ The structure of our code will be like :<br />
   We added discriminator and generator in models.py<br />
 
 #### 20.07.2020<br />
-The training Loop has beed added.Our code are almost done,meanwhile some trouble have been fixed.Also we tried some different variables to see how the results would change. <br />
+The training Loop has beed added.<br />
+Our code are almost done,meanwhile,some trouble have been fixed.We tried some different variables to see how the results would possibly change. <br />
 
 ## Tutorial on how to run the pix2pix in Colab<br />
 1.Open the Notebook in Google Colab with the following link: <br />
