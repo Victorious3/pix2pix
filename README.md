@@ -14,20 +14,21 @@ We had our first discussion and learned more about pix2pix.
 
 #### 12.07.2020<br />
 The structure of our code will be like :<br />
-  - Install<br />
   - Dataset<br />
   - Load<br />
-  - Randomize<br />
+  - Optimize<br />
+  - Discriminator and Generator<br />
+  - Sample<br />
   - Training<br />
-  - Testing<br />
-  
+
   We added discriminator and generator in models.py<br />
 
-
+#### 20.07.2020<br />
+The training Loop has beed added.Our code are almost done,meanwhile some trouble have been fixed.Also we tried some different variables to see how the results would change. <br />
 
 ## Tutorial on how to run the pix2pix in Colab<br />
 1.Open the Notebook in Google Colab with the following link: <br />
-<br />
+https://colab.research.google.com/github/Victorious3/pix2pix/blob/master/pix2pix.ipynb<br />
 2.In order to run the whole pix2pix-code,go under 'Run all' over the dropdown menu 'Runtime'.<br />
 
 ## Overview<br />
@@ -40,6 +41,73 @@ But for the image-to-image translation tasks, the input of G should obviously be
 
 
 ## Explanation of code<br />
+### Import<br />
+~~~
+import glob
+import random
+import os
+import numpy as np
+from PIL import Image
+from torch.utils.data import Dataset
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+~~~
+### Dataset<br />
+~~~
+_URL = 'bash ./datasets/download_pix2pix_dataset.sh facades'
+
+class ImageDataset(Dataset):
+    def __init__(self, args, root, transforms_=None, mode='train'):
+        self.transform = transforms.Compose(transforms_)
+        self.args = args
+        self.files = sorted(glob.glob(os.path.join(root, mode) + '/*.*'))
+
+    def __getitem__(self, index):
+
+        img = Image.open(self.files[index])
+        w, h = img.size
+
+        if self.args.which_direction == 'AtoB':
+            img_A = img.crop((0, 0, w/2, h))
+            img_B = img.crop((w/2, 0, w, h))
+        else:
+            img_B = img.crop((0, 0, w/2, h))
+            img_A = img.crop((w/2, 0, w, h))
+
+
+        if np.random.random() < 0.5:
+            img_A = Image.fromarray(np.array(img_A)[:, ::-1, :], 'RGB')
+            img_B = Image.fromarray(np.array(img_B)[:, ::-1, :], 'RGB')
+
+        img_A = self.transform(img_A)
+        img_B = self.transform(img_B)
+
+        return {'A': img_A, 'B': img_B}
+
+    def __len__(self):
+        return len(self.files)
+~~~
+### Loader<br />
+~~~
+def Get_dataloader(args):
+    transforms_ = [ transforms.Resize((args.img_height, args.img_width), Image.BICUBIC),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
+
+    train_dataloader = DataLoader(ImageDataset(args, "%s/%s" % (args.data_root,args.dataset_name),
+                        transforms_=transforms_,mode='train'),
+                        batch_size=args.batch_size, shuffle=True, num_workers=args.n_cpu, drop_last=True)
+
+    test_dataloader = DataLoader(ImageDataset(args, "%s/%s" % (args.data_root,args.dataset_name),
+                            transforms_=transforms_, mode='test'),
+                            batch_size=10, shuffle=True, num_workers=1, drop_last=True)
+
+    val_dataloader = DataLoader(ImageDataset(args, "%s/%s" % (args.data_root,args.dataset_name),
+                            transforms_=transforms_, mode='val'),
+                            batch_size=10, shuffle=True, num_workers=1, drop_last=True)
+
+    return train_dataloader, test_dataloader, val_dataloader
+~~~
 ### Optimizer<br /> 
 ~~~
 import torch
@@ -200,8 +268,160 @@ class GeneratorUNet(nn.Module):
         u7 = self.up7(u6, d1)
 
         return self.up8(u7)
+        
+def weights_init_normal(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        torch.nn.init.normal(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm2d') != -1:
+        torch.nn.init.normal(m.weight.data, 1.0, 0.02)
+        torch.nn.init.constant(m.bias.data, 0.0)
+
 
 ~~~
+### Initialize G & D
+~~~
+def Create_nets(args):
+    generator = GeneratorUNet(args.in_channels, args.out_channels)
+    discriminator = Discriminator(args.out_channels)
+
+    if torch.cuda.is_available():
+        generator = generator.cuda()
+        discriminator = discriminator.cuda()
+
+    # Initialize weights
+    generator.apply(weights_init_normal)
+    discriminator.apply(weights_init_normal)
+
+    return generator, discriminator
+~~~
+### Sample
+~~~
+import argparse
+import torch
+import time
+import numpy as np
+import datetime
+import sys
+
+from torch.autograd import Variable
+from torchvision.utils import save_image
+
+from models import Create_nets
+from datasets import Get_dataloader
+from optimizer import Get_loss_func, Get_optimizer_func
+
+def sample_images(generator, test_dataloader, args, epoch, batches_done):
+    """Saves a generated sample from the validation set"""
+
+    imgs = next(iter(test_dataloader))
+    real_A = Variable(imgs['A'].type(torch.FloatTensor).cuda())
+    real_B = Variable(imgs['B'].type(torch.FloatTensor).cuda())
+    fake_B = generator(real_A)
+    img_sample = torch.cat((real_A.data, fake_B.data, real_B.data), -2)
+    save_image(img_sample, '%s/%s/%s-%s.png' % (args.dataset_name, args.img_result_dir, batches_done, epoch), nrow=5, normalize=True)
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Pix2Pix")
+
+    parser.add_argument('--epoch_start', type=int, default=0, help='epoch to start training from')
+    parser.add_argument('--epoch_num', type=int, default=200, help='number of epochs of training')
+    parser.add_argument('--data_root', type=str, default='../../data/', help='dir of the dataset')
+    parser.add_argument('--dataset_name', type=str, default="facades", help='name of the dataset')
+    parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
+    parser.add_argument('--img_height', type=int, default=256, help='size of image height')
+    parser.add_argument('--img_width', type=int, default=256, help='size of image width')
+    parser.add_argument('--in_channels', type=int, default=3, help='number of input image channels')
+    parser.add_argument('--out_channels', type=int, default=3, help='number of output image channels')
+    parser.add_argument('--sample_interval', type=int, default=200, help='interval between sampling of images from generators')
+    parser.add_argument('--which_direction', type=str, default='AtoB', help='AtoB or BtoA')
+    parser.add_argument('--lambda_pixel', type=int, default=100, help='Loss weight of L1 pixel-wise loss between translated image and real image')
+    parser.add_argument('--img_result_dir', type=str, default='result_images', help='where to save the result images')
+
+    args = parser.parse_args()
+
+    # Initialize generator and discriminator
+    generator, discriminator = Create_nets(args)
+    # Loss functions
+    criterion_GAN, criterion_pixelwise = Get_loss_func(args)
+    # Optimizers
+    optimizer_G, optimizer_D = Get_optimizer_func(args, generator, discriminator)
+
+    # Configure dataloaders
+    train_dataloader, test_dataloader, _ = Get_dataloader(args)
+~~~
+### Training
+~~~
+    prev_time = time.time()
+    for epoch in range(args.epoch_start, args.epoch_num):
+        for i, batch in enumerate(train_dataloader):
+
+            # Model inputs
+            real_A = Variable(batch['A'].type(torch.FloatTensor).cuda())
+            real_B = Variable(batch['B'].type(torch.FloatTensor).cuda())
+
+            # Adversarial ground truths
+            valid = Variable(torch.FloatTensor(np.ones((real_A.size(0), 1, 6, 6))).cuda(), requires_grad=False)
+            fake = Variable(torch.FloatTensor(np.zeros((real_A.size(0), 1, 6, 6))).cuda(), requires_grad=False)
+
+            # ------------------
+            #  Train Generators
+            # ------------------
+            optimizer_G.zero_grad()
+
+            #loss
+            fake_B = generator(real_A)
+            pred_fake = discriminator(fake_B, real_A)
+            loss_GAN = criterion_GAN(pred_fake, valid)
+            # Pixel-wise loss
+            loss_pixel = criterion_pixelwise(fake_B, real_B)
+
+            # Total loss
+            loss_G = loss_GAN + args.lambda_pixel * loss_pixel
+            loss_G.backward()
+            optimizer_G.step()
+
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
+            optimizer_D.zero_grad()
+            # Real loss
+            pred_real = discriminator(real_B, real_A)
+            loss_real = criterion_GAN(pred_real, valid)
+
+            # Fake loss
+            pred_fake = discriminator(fake_B.detach(), real_A)
+            loss_fake = criterion_GAN(pred_fake, fake)
+
+            # Total loss
+            loss_D = 0.5 * (loss_real + loss_fake)
+            loss_D.backward()
+            optimizer_D.step()
+
+            # --------------
+            #  Log Progress
+            # --------------
+            # Determine approximate time left
+            batches_done = epoch * len(train_dataloader) + i
+            batches_left = args.epoch_num * len(train_dataloader) - batches_done
+            time_left = datetime.timedelta(seconds=batches_left * (time.time() - prev_time))
+            prev_time = time.time()
+
+            # Print log
+            sys.stdout.write("\r[Epoch%d/%d] - [Batch%d/%d] - [Dloss:%f] - [Gloss:%f, loss_pixel:%f, adv:%f] ETA:%s" %
+                (epoch + 1, args.epoch_num,
+                i, len(train_dataloader),
+                loss_D.data.cpu(), loss_G.data.cpu(),
+                loss_pixel.data.cpu(), loss_GAN.data.cpu(),
+                time_left))
+
+            # If at sample interval save image
+            if batches_done % args.sample_interval == 0:
+                sample_images(generator, test_dataloader, args, epoch, batches_done)
+~~~
+
+
 ## Summary<br />
 
 
