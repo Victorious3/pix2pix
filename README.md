@@ -120,7 +120,7 @@ def Get_dataloader(args):
 ~~~
 
 ### Discriminator<br />
-We created the discriminator to help us distinguish the generated images between true and fake.
+We create the discriminator to help us distinguish the generated images between true and fake.
 ~~~
 import torch.nn as nn
 import torch
@@ -279,7 +279,7 @@ def Create_nets(args):
     return generator, discriminator
 ~~~
 ### Optimizer<br /> 
-We using here Adam Optimizers.
+We use here Adam Optimizers.
 ~~~
 import torch
 # Adam Optimizers
@@ -299,7 +299,7 @@ def Get_optimizer_func(args, generator, discriminator):
 ~~~
 
 ### Loss function<br />
-We use L1 Loss and GAN Loss to avoid blurry and shape.
+In order to avoid blurry and shape,we use L1 Loss and GAN Loss.
 ~~~
 # Loss functions
 def Get_loss_func(args):
@@ -313,7 +313,7 @@ def Get_loss_func(args):
 
 ### Training
 #### Sample
-We used this sample to training our pix2pix code.
+We use this sample to training our pix2pix code.
 ~~~
 import argparse
 import torch
@@ -378,7 +378,7 @@ if __name__ == "__main__":
     train_dataloader, test_dataloader, _ = Get_dataloader(args)
 ~~~
 #### Training G and D
-For each input image,one output will generated.We calculated the loss of Generator and Discriminator ,the we calculated the gardient of loss for the G and D inputs and apply it to the Optimizer.<br />
+For each input image,one output will generated.We calculated first the loss of Generator and Discriminator ,and then calculated the gardient of loss for the G and D inputs and apply it to the Optimizer.<br />
 <img src="image/training_G_image.png">
 <img src="image/training_D_image.png">
 ~~~
@@ -432,7 +432,8 @@ For each input image,one output will generated.We calculated the loss of Generat
             loss_D = 0.5 * (loss_real + loss_fake)
             loss_D.backward()
             optimizer_D.step()
-
+~~~
+~~~
             # --------------
             #  Log Progress
             # --------------
