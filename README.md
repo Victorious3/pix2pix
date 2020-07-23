@@ -18,7 +18,6 @@ The structure of our code will be like :<br />
   - Load<br />
   - Discriminator and Generator<br />
   - Optimize<br />  
-  - Sample<br />
   - Training<br />
 
   We added discriminator and generator in models.py<br />
