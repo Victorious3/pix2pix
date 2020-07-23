@@ -30,7 +30,8 @@ Our code are almost done,meanwhile,some trouble have been fixed.We tried some di
 ## Tutorial on how to run the pix2pix in Colab<br />
 1.Open the Notebook in Google Colab with the following link: <br />
 https://colab.research.google.com/github/Victorious3/pix2pix/blob/master/pix2pix.ipynb<br />
-2.In order to run the whole pix2pix-code,go under 'Run all' over the dropdown menu 'Runtime'.<br />
+2.Activate the use of a GPU under Runtime > Change Runtime Type. <br />
+3.Run the code under Runtime > Run all or with ctrl + F9<br />
 
 ## Overview<br />
 The Pix2Pix Generative Adversarial Network(GAN) is a framework based on adversarial neural network, which can realize image-to-image translation.The goal of image-to-image translation tasks is to output images that based on the input images(soruce images),such as converting maps to satellite photographs, black and white photographs to color, and sketches of products to product photographs.<br />
