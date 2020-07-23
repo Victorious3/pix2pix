@@ -45,7 +45,7 @@ The Pix2Pix Generative Adversarial Network(GAN) is a framework based on adversar
 Since it's based on the GAN framework,we need to frist define the input and output. The input of Generator(G) received by ordinary GAN is a random vector, and the output is an image; the input received by Discriminator(D) is an image (generated or real), and the output is real or fake. This way G and D can work together to output real images.<br />
 But for the image-to-image translation tasks, the input of G should obviously be a picture x, and the output is a picture y. However, some changes should be made to the input of D, because in addition to generating a real image, it is also necessary to ensure that the generated image and the input image match.<br />
 This is the objective function.<br />
-<img src="function_image.png">
+<img src="image/function_image.png">
 
 ## Explanation of code<br />
 ### Import<br />
@@ -172,7 +172,7 @@ class Discriminator(nn.Module):
 ### UNet
 The UNet will connected the input and mirrored layer of the decoder before conv layer,so the number of input channels is doubled.<br />
 The picture below shows the difference between the orignial encoder-decoder modell and the UNet modell.<br />
-<img src="images/unet_image.png">
+<img src="image/unet_image.png">
 ~~~ 
 class UNetDown(nn.Module):
     def __init__(self, in_size, out_size, normalize=True, dropout=0.0):
@@ -379,7 +379,9 @@ if __name__ == "__main__":
     train_dataloader, test_dataloader, _ = Get_dataloader(args)
 ~~~
 #### Training G and D
-For each input image,one output will generated.We calculated the loss of Generator and Discriminator ,the we calculated the gardient of loss for the G and D inputs and apply it to the Optimizer.
+For each input image,one output will generated.We calculated the loss of Generator and Discriminator ,the we calculated the gardient of loss for the G and D inputs and apply it to the Optimizer.<br />
+<img src="image/training_G_image.png">
+<img src="image/training_D_image.png">
 ~~~
     # ----------
     #  Training
@@ -395,7 +397,8 @@ For each input image,one output will generated.We calculated the loss of Generat
             # Adversarial ground truths
             valid = Variable(torch.FloatTensor(np.ones((real_A.size(0), 1, 14, 14))).cuda(), requires_grad=False)
             fake = Variable(torch.FloatTensor(np.zeros((real_A.size(0), 1, 14, 14))).cuda(), requires_grad=False)
-
+~~~
+~~~
             # ------------------
             #  Train Generators
             # ------------------
@@ -412,7 +415,8 @@ For each input image,one output will generated.We calculated the loss of Generat
             loss_G = loss_GAN + args.lambda_pixel * loss_pixel
             loss_G.backward()
             optimizer_G.step()
-
+~~~
+~~~
             # ---------------------
             #  Train Discriminator
             # ---------------------
