@@ -4,6 +4,7 @@ import time
 import numpy as np
 import datetime
 import sys
+import os
 
 from torch.autograd import Variable
 from torchvision.utils import save_image
@@ -45,6 +46,9 @@ if __name__ == "__main__":
     parser.add_argument('--img_result_dir', type=str, default='result_images', help='where to save the result images')
 
     args = parser.parse_args()
+
+    # Create image folder
+    os.makedirs('%s/%s' % (args.dataset_name, args.img_result_dir), exist_ok=True)
 
     # Initialize generator and discriminator
     generator, discriminator = Create_nets(args)
