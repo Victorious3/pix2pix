@@ -428,3 +428,7 @@ if __name__ == "__main__":
 
 
 ### Output<br />
+Epoch 1/200
+<img src="image/0-0.png">
+Epoch 199/200
+<img src="image/79800-199.png">
