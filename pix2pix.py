@@ -26,6 +26,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Pix2Pix")
 
+    parser.add_argument('--lr', type=float, default=0.0002, help='adam: learning rate')
+    parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
+    parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of first order momentum of gradient')
     parser.add_argument('--epoch_start', type=int, default=0, help='epoch to start training from')
     parser.add_argument('--epoch_num', type=int, default=200, help='number of epochs of training')
     parser.add_argument('--data_root', type=str, default='../../data/', help='dir of the dataset')
