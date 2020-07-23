@@ -16,8 +16,8 @@ We had our first discussion and learned more about pix2pix.
 The structure of our code will be like :<br />
   - Dataset<br />
   - Load<br />
-  - Optimize<br />
   - Discriminator and Generator<br />
+  - Optimize<br />  
   - Sample<br />
   - Training<br />
 
@@ -26,6 +26,10 @@ The structure of our code will be like :<br />
 #### 20.07.2020<br />
 The training Loop has beed added.<br />
 Our code are almost done,meanwhile,some trouble have been fixed.We tried some different variables to see how the results would possibly change. <br />
+
+#### 23.07.2020<br />
+In the last few steps,variables and some error have been modified,and the image was successfully translated.<br/>
+The project is finished.
 
 ## Tutorial on how to run the pix2pix in Colab<br />
 1.Open the Notebook in Google Colab with the following link: <br />
@@ -39,11 +43,13 @@ The Pix2Pix Generative Adversarial Network(GAN) is a framework based on adversar
 
 ### Specific process <br />
 Since it's based on the GAN framework,we need to frist define the input and output. The input of Generator(G) received by ordinary GAN is a random vector, and the output is an image; the input received by Discriminator(D) is an image (generated or real), and the output is real or fake. This way G and D can work together to output real images.<br />
-But for the image-to-image translation tasks, the input of G should obviously be a picture x, and the output is a picture y. However, some changes should be made to the input of D, because in addition to generating a real image, it is also necessary to ensure that the generated image and the input image match.In this case,the input of D has beed changed to a loss function.<br />
-
+But for the image-to-image translation tasks, the input of G should obviously be a picture x, and the output is a picture y. However, some changes should be made to the input of D, because in addition to generating a real image, it is also necessary to ensure that the generated image and the input image match.<br />
+This is the objective function.<br />
+<img src="function_image.png">
 
 ## Explanation of code<br />
 ### Import<br />
+Import the classes that we need later.<br />
 ~~~
 import glob
 import random
@@ -55,9 +61,11 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 ~~~
 ### Dataset<br />
+We used this datei as our dataset script.<br />
 ~~~
 _URL = 'bash ./datasets/download_pix2pix_dataset.sh facades'
-
+~~~
+~~~
 class ImageDataset(Dataset):
     def __init__(self, args, root, transforms_=None, mode='train'):
         self.transform = transforms.Compose(transforms_)
@@ -90,6 +98,7 @@ class ImageDataset(Dataset):
         return len(self.files)
 ~~~
 ### Loader<br />
+The methode get_dataloader can help us process dataset.
 ~~~
 def Get_dataloader(args):
     transforms_ = [ transforms.Resize((args.img_height, args.img_width), Image.BICUBIC),
@@ -110,38 +119,9 @@ def Get_dataloader(args):
 
     return train_dataloader, test_dataloader, val_dataloader
 ~~~
-### Optimizer<br /> 
-~~~
-import torch
-# Adam Optimizers
-def Get_optimizer_func(args, generator, discriminator):
-    ArgLr = args.lr
-    ArgB1 = args.b1
-    ArgB2 = args.b2
-
-    optimizer_G = torch.optim.Adam(
-                    generator.parameters(),
-                    lr=ArgLr, betas=(ArgB1, ArgB2))
-    optimizer_D = torch.optim.Adam(
-                    discriminator.parameters(),
-                    lr=ArgLr, betas=(ArgB1, ArgB2))
-    
-    return optimizer_G, optimizer_D
-~~~
-
-### Loss function<br />
-~~~
-# Loss functions
-def Get_loss_func(args):
-    crit_GAN = torch.nn.BCELoss()
-    crit_pixelwise = torch.nn.L1Loss()
-    if torch.cuda.is_available():
-        crit_GAN.cuda()
-        crit_pixelwise.cuda()
-    return crit_GAN, crit_pixelwise
-~~~
 
 ### Discriminator<br />
+We created the discriminator to help us distinguish the generated images between true and fake.
 ~~~
 import torch.nn as nn
 import torch
@@ -190,6 +170,9 @@ class Discriminator(nn.Module):
         return x
 ~~~
 ### UNet
+The UNet will connected the input and mirrored layer of the decoder before conv layer,so the number of input channels is doubled.<br />
+The picture below shows the difference between the orignial encoder-decoder modell and the UNet modell.<br />
+<img src="images/unet_image.png">
 ~~~ 
 class UNetDown(nn.Module):
     def __init__(self, in_size, out_size, normalize=True, dropout=0.0):
@@ -224,6 +207,7 @@ class UNetUp(nn.Module):
 
 ~~~
 ### Generator <br />
+The generator will generated fake images with UNet structure.
 ~~~
 class GeneratorUNet(nn.Module):
     def __init__(self, in_channels=3, out_channels=3):
@@ -270,7 +254,8 @@ class GeneratorUNet(nn.Module):
         u7 = self.up7(u6, d1)
 
         return self.up8(u7)
-        
+
+
 def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -279,10 +264,7 @@ def weights_init_normal(m):
         torch.nn.init.normal(m.weight.data, 1.0, 0.02)
         torch.nn.init.constant(m.bias.data, 0.0)
 
-
-~~~
-### Initialize G & D
-~~~
+# Initialize generator and discriminator
 def Create_nets(args):
     generator = GeneratorUNet(args.in_channels, args.out_channels)
     discriminator = Discriminator(args.out_channels)
@@ -297,7 +279,42 @@ def Create_nets(args):
 
     return generator, discriminator
 ~~~
-### Sample
+### Optimizer<br /> 
+We using here Adam Optimizers.
+~~~
+import torch
+# Adam Optimizers
+def Get_optimizer_func(args, generator, discriminator):
+    ArgLr = args.lr
+    ArgB1 = args.b1
+    ArgB2 = args.b2
+
+    optimizer_G = torch.optim.Adam(
+                    generator.parameters(),
+                    lr=ArgLr, betas=(ArgB1, ArgB2))
+    optimizer_D = torch.optim.Adam(
+                    discriminator.parameters(),
+                    lr=ArgLr, betas=(ArgB1, ArgB2))
+    
+    return optimizer_G, optimizer_D
+~~~
+
+### Loss function<br />
+We use L1 Loss and GAN Loss to avoid blurry and shape.
+~~~
+# Loss functions
+def Get_loss_func(args):
+    crit_GAN = torch.nn.BCELoss()
+    crit_pixelwise = torch.nn.L1Loss()
+    if torch.cuda.is_available():
+        crit_GAN.cuda()
+        crit_pixelwise.cuda()
+    return crit_GAN, crit_pixelwise
+~~~
+
+### Training
+#### Sample
+We used this sample to training our pix2pix code.
 ~~~
 import argparse
 import torch
@@ -305,6 +322,7 @@ import time
 import numpy as np
 import datetime
 import sys
+import os
 
 from torch.autograd import Variable
 from torchvision.utils import save_image
@@ -327,6 +345,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Pix2Pix")
 
+    parser.add_argument('--lr', type=float, default=0.0002, help='adam: learning rate')
+    parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
+    parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of first order momentum of gradient')
+    parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
     parser.add_argument('--epoch_start', type=int, default=0, help='epoch to start training from')
     parser.add_argument('--epoch_num', type=int, default=200, help='number of epochs of training')
     parser.add_argument('--data_root', type=str, default='../../data/', help='dir of the dataset')
@@ -343,6 +365,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Create image folder
+    os.makedirs('%s/%s' % (args.dataset_name, args.img_result_dir), exist_ok=True)
+
     # Initialize generator and discriminator
     generator, discriminator = Create_nets(args)
     # Loss functions
@@ -353,8 +378,12 @@ if __name__ == "__main__":
     # Configure dataloaders
     train_dataloader, test_dataloader, _ = Get_dataloader(args)
 ~~~
-### Training
+#### Training G and D
+For each input image,one output will generated.We calculated the loss of Generator and Discriminator ,the we calculated the gardient of loss for the G and D inputs and apply it to the Optimizer.
 ~~~
+    # ----------
+    #  Training
+    # ----------
     prev_time = time.time()
     for epoch in range(args.epoch_start, args.epoch_num):
         for i, batch in enumerate(train_dataloader):
@@ -364,8 +393,8 @@ if __name__ == "__main__":
             real_B = Variable(batch['B'].type(torch.FloatTensor).cuda())
 
             # Adversarial ground truths
-            valid = Variable(torch.FloatTensor(np.ones((real_A.size(0), 1, 6, 6))).cuda(), requires_grad=False)
-            fake = Variable(torch.FloatTensor(np.zeros((real_A.size(0), 1, 6, 6))).cuda(), requires_grad=False)
+            valid = Variable(torch.FloatTensor(np.ones((real_A.size(0), 1, 14, 14))).cuda(), requires_grad=False)
+            fake = Variable(torch.FloatTensor(np.zeros((real_A.size(0), 1, 14, 14))).cuda(), requires_grad=False)
 
             # ------------------
             #  Train Generators
@@ -421,11 +450,10 @@ if __name__ == "__main__":
             # If at sample interval save image
             if batches_done % args.sample_interval == 0:
                 sample_images(generator, test_dataloader, args, epoch, batches_done)
-~~~
-
+~~~                
 
 ## Summary<br />
-
+With pix2pix ,we are able to translate a sketch to a clearly image.
 
 ### Output<br />
 Epoch 1/200
