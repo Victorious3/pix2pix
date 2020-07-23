@@ -72,8 +72,8 @@ if __name__ == "__main__":
             real_B = Variable(batch['B'].type(torch.FloatTensor).cuda())
 
             # Adversarial ground truths
-            valid = Variable(torch.FloatTensor(np.ones((real_A.size(0), 1, 4, 4))).cuda(), requires_grad=False)
-            fake = Variable(torch.FloatTensor(np.zeros((real_A.size(0), 1, 4, 4))).cuda(), requires_grad=False)
+            valid = Variable(torch.FloatTensor(np.ones((real_A.size(0), 1, 14, 14))).cuda(), requires_grad=False)
+            fake = Variable(torch.FloatTensor(np.zeros((real_A.size(0), 1, 14, 14))).cuda(), requires_grad=False)
 
             # ------------------
             #  Train Generators
